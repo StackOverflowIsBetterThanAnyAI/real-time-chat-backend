@@ -20,9 +20,9 @@ class UserController extends AbstractController
         }
 
         return $this->json([
-            'username' => $user->getUserIdentifier(),
+            'userName' => $user->getUserIdentifier(),
             'status' => $user->getStatus() ?? 'Hey there, I am using Dieter-Chat',
-            'profilePicture' => $user->getProfilePicture() ?? null,
+            'profilePicture' => $user->getProfilePicture() ?? '',
         ]);
     }
 }

@@ -19,9 +19,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(length: 63, unique: true)]
-    private string $username;
+    private string $userName;
 
-    #[ORM\Column(length: 63)]
+    #[ORM\Column(length: 255)]
     private string $password;
 
     #[ORM\Column(length: 255, nullable: true)]
@@ -78,14 +78,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->id;
     }
 
-    public function getUsername(): string
+    public function getUserName(): string
     {
-        return $this->username;
+        return $this->userName;
     }
 
-    public function setUsername(string $username): static
+    public function setUserName(string $userName): static
     {
-        $this->username = $username;
+        $this->userName = $userName;
 
         return $this;
     }
@@ -228,7 +228,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getUserIdentifier(): string
     {
-        return $this->username;
+        return $this->userName;
     }
 
     public function getRoles(): array

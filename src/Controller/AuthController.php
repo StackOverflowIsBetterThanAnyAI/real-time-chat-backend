@@ -21,16 +21,16 @@ class AuthController extends AbstractController
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
-        $username = $data['username'] ?? '';
+        $userName = $data['userName'] ?? '';
         $password = $data['password'] ?? '';
 
-        $usernameLen = \strlen($username);
-        if ($usernameLen < 5 || $usernameLen > 63) {
-            return $this->json(['error' => 'Username must be between 5 and 63 characters long.'], 400);
+        $userNameLen = \strlen($userName);
+        if ($userNameLen < 5 || $userNameLen > 63) {
+            return $this->json(['error' => 'User name must be between 5 and 63 characters long.'], 400);
         }
 
-        if (!preg_match('/^[a-zA-Z0-9]+$/', $username)) {
-            return $this->json(['error' => 'Username can only contain Latin letters and numbers.'], 400);
+        if (!preg_match('/^[a-zA-Z0-9]+$/', $userName)) {
+            return $this->json(['error' => 'User name can only contain Latin letters and numbers.'], 400);
         }
 
         $passwordLen = \strlen($password);
@@ -38,13 +38,13 @@ class AuthController extends AbstractController
             return $this->json(['error' => 'Password must be between 8 and 63 characters long.'], 400);
         }
 
-        $existingUser = $entityManager->getRepository(User::class)->findOneBy(['username' => $username]);
+        $existingUser = $entityManager->getRepository(User::class)->findOneBy(['userName' => $userName]);
         if ($existingUser) {
-            return $this->json(['error' => 'This username is already taken.'], 400);
+            return $this->json(['error' => 'This user name is already taken.'], 400);
         }
 
         $user = new User();
-        $user->setUsername($data['username']);
+        $user->setUserName($data['userName']);
         $user->setCreatedAt(new \DateTimeImmutable());
 
         $hashedPassword = $passwordHasher->hashPassword(
@@ -64,10 +64,10 @@ class AuthController extends AbstractController
     {
         $data = json_decode($request->getContent(), true);
 
-        $username = $data['username'] ?? '';
+        $userName = $data['userName'] ?? '';
         $password = $data['password'] ?? '';
 
-        $user = $entityManager->getRepository(User::class)->findOneBy(['username' => $username]);
+        $user = $entityManager->getRepository(User::class)->findOneBy(['userName' => $userName]);
 
         if (!$user || !$passwordHasher->isPasswordValid($user, $password)) {
             return $this->json(['error' => 'Invalid credentials.'], 401);
@@ -75,7 +75,7 @@ class AuthController extends AbstractController
 
         return $this->json([
             'message' => 'Logged in successfully!',
-            'username' => $user->getUserIdentifier()
+            'userName' => $user->getUserIdentifier()
         ], 200);
     }
 }
