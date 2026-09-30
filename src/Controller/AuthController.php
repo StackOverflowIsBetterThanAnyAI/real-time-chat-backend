@@ -58,4 +58,25 @@ class AuthController extends AbstractController
 
         return $this->json(['message' => 'User successfully registered!'], 201);
     }
+
+    #[Route('/login', name: 'login', methods: ['POST'])]
+    public function login(Request $request, UserPasswordHasherInterface $passwordHasher, EntityManagerInterface $entityManager): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+
+        $username = $data['username'] ?? '';
+        $password = $data['password'] ?? '';
+
+        $user = $entityManager->getRepository(User::class)->findOneBy(['username' => $username]);
+
+        if (!$user || !$passwordHasher->isPasswordValid($user, $password)) {
+            return $this->json(['error' => 'Invalid credentials.'], 401);
+        }
+
+        return $this->json([
+            'message' => 'Logged in successfully!',
+            'username' => $user->getUserIdentifier()
+        ], 200);
+    }
 }
+
