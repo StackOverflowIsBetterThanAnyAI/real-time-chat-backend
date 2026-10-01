@@ -40,7 +40,7 @@ class AuthController extends AbstractController
 
         $existingUser = $entityManager->getRepository(User::class)->findOneBy(['userName' => $userName]);
         if ($existingUser) {
-            return $this->json(['error' => 'This user name is already taken.'], 400);
+            return $this->json(['error' => 'This user name is already taken.'], 409);
         }
 
         $user = new User();
