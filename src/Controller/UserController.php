@@ -58,4 +58,61 @@ class UserController extends AbstractController
             'status' => $user->getStatus()
         ], 200);
     }
+
+    #[Route('/profile-picture', name: 'profile_picture', methods: ['POST'])]
+    public function uploadProfilePicture(
+        Request $request, 
+        EntityManagerInterface $entityManager
+    ): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if (!$user) {
+            return $this->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $file = $request->files->get('profilePicture');
+
+        if (!$file) {
+            return $this->json(['error' => 'No file uploaded.'], 400);
+        }
+
+        $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!\in_array($file->getMimeType(), $allowedMimeTypes)) {
+            return $this->json(['error' => 'Invalid file type. Only JPG, PNG and WEBP are allowed.'], 400);
+        }
+
+        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/public/uploads/avatars';
+
+        if (!is_dir($uploadsDirectory)) {
+            mkdir($uploadsDirectory, 0777, true);
+        }
+
+        $extension = $file->guessExtension() ?? 'jpg';
+        $fileName = 'profile_picture_user_' . $user->getId() . '.' . $extension;
+
+        try {
+            $oldPicture = $user->getProfilePicture();
+            if ($oldPicture) {
+                $oldFilePath = $this->getParameter('kernel.project_dir') . '/public' . $oldPicture;
+                if (file_exists($oldFilePath)) {
+                    @unlink($oldFilePath);
+                }
+            }
+
+            $file->move($uploadsDirectory, $fileName);
+        } catch (\Exception $e) {
+            return $this->json(['error' => 'Failed to upload file.'], 500);
+        }
+
+        $relativePath = "/uploads/avatars/{$fileName}";
+        $user->setProfilePicture($relativePath);
+        $entityManager->flush();
+
+        return $this->json([
+            'message' => 'Profile picture updated successfully!',
+            'profilePicture' => $relativePath
+        ], 200);
+    }
 }
