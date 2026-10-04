@@ -175,6 +175,22 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
+     * @return Collection<int, Friendship>
+     */
+    public function getSentFriendships(): Collection
+    {
+        return $this->sentFriendships;
+    }
+
+    /**
+     * @return Collection<int, Friendship>
+     */
+    public function getReceivedFriendships(): Collection
+    {
+        return $this->receivedFriendships;
+    }
+
+    /**
      * @return Collection<int, Conversation>
      */
     public function getConversations(): Collection
