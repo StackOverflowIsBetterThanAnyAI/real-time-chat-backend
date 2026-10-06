@@ -10,10 +10,10 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/api', name: 'api_')]
+#[Route('/api/friends', name: 'api_friends_')]
 class FriendshipController extends AbstractController
 {
-    #[Route('/friends', name: 'friends', methods: ['GET'])]
+    #[Route('/', name: '', methods: ['GET'])]
     public function getFriends(): JsonResponse
     {
         /** @var User $user */
@@ -54,7 +54,7 @@ class FriendshipController extends AbstractController
         }
     }
 
-    #[Route('/friends/request', name: 'send_request', methods: ['POST'])]
+    #[Route('/request', name: 'send_request', methods: ['POST'])]
     public function sendRequest(Request $request, EntityManagerInterface $entityManager): JsonResponse
     {
         /** @var User $user */
@@ -114,7 +114,7 @@ class FriendshipController extends AbstractController
         }
     }
 
-    #[Route('/friends/{id}/accept', name: 'accept', methods: ['PATCH'])]
+    #[Route('/{id}/accept', name: 'accept', methods: ['PATCH'])]
     public function acceptRequest(int $id, EntityManagerInterface $entityManager): JsonResponse
     {
         /** @var User $user */
@@ -147,7 +147,7 @@ class FriendshipController extends AbstractController
         }
     }
 
-    #[Route('/friends/{id}', name: 'remove', methods: ['DELETE'])]
+    #[Route('/{id}', name: 'remove', methods: ['DELETE'])]
     public function removeFriendship(int $id, EntityManagerInterface $entityManager): JsonResponse
     {
         /** @var User $user */
