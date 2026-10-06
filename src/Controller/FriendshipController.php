@@ -107,7 +107,16 @@ class FriendshipController extends AbstractController
             $entityManager->persist($friendship);
             $entityManager->flush();
 
-            return $this->json(['message' => 'Friend request sent successfully!'], 201);
+            return $this->json([
+                'id' => $friendship->getId(),
+                'status' => $friendship->getStatus(),
+                'direction' => 'sent',
+                'friend' => [
+                    'userName' => $targetUser->getUserName(),
+                    'profilePicture' => $targetUser->getProfilePicture() ?? '',
+                    'status' => $targetUser->getStatus() ?? '',
+                ],
+            ], 201);
             
         } catch (\Exception $e) {
             return $this->json(['error' => 'An error occurred while sending the friend request.'], 400);
