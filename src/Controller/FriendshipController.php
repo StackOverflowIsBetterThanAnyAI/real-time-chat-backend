@@ -54,7 +54,7 @@ class FriendshipController extends AbstractController
         }
     }
 
-    #[Route('/request', name: 'send_request', methods: ['POST'])]
+    #[Route('/friends/request', name: 'send_request', methods: ['POST'])]
     public function sendRequest(Request $request, EntityManagerInterface $entityManager): JsonResponse
     {
         /** @var User $user */
@@ -114,7 +114,7 @@ class FriendshipController extends AbstractController
         }
     }
 
-    #[Route('/{id}/accept', name: 'accept', methods: ['PATCH'])]
+    #[Route('/friends/{id}/accept', name: 'accept', methods: ['PATCH'])]
     public function acceptRequest(int $id, EntityManagerInterface $entityManager): JsonResponse
     {
         /** @var User $user */
@@ -147,7 +147,7 @@ class FriendshipController extends AbstractController
         }
     }
 
-    #[Route('/{id}', name: 'remove', methods: ['DELETE'])]
+    #[Route('/friends/{id}', name: 'remove', methods: ['DELETE'])]
     public function removeFriendship(int $id, EntityManagerInterface $entityManager): JsonResponse
     {
         /** @var User $user */
