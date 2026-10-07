@@ -149,7 +149,19 @@ class FriendshipController extends AbstractController
             $friendship->setStatus('accepted');
             $entityManager->flush();
 
-            return $this->json(['message' => 'Friend request accepted!'], 200);
+            $isRequester = $friendship->getRequester() === $user;
+            $otherUser = $isRequester ? $friendship->getAddressee() : $friendship->getRequester();
+
+            return $this->json([
+                'id' => $friendship->getId(),
+                'status' => $friendship->getStatus(),
+                'direction' => $isRequester ? 'sent' : 'received',
+                'friend' => [
+                    'userName' => $otherUser->getUserName(),
+                    'profilePicture' => $otherUser->getProfilePicture() ?? '',
+                    'status' => $otherUser->getStatus() ?? '',
+                ],
+            ], 200);
 
         } catch (\Exception $e) {
             return $this->json(['error' => 'An error occurred while accepting the request.'], 400);
