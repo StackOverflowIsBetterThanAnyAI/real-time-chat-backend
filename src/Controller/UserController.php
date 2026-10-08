@@ -126,4 +126,30 @@ class UserController extends AbstractController
             'profilePicture' => $relativePath
         ], 200);
     }
+
+    #[Route('/account', name: 'delete_account', methods: ['DELETE'])]
+    public function deleteAccount(EntityManagerInterface $entityManager): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if (!$user) {
+            return $this->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $profilePicture = $user->getProfilePicture();
+        if ($profilePicture) {
+            $filePath = $this->getParameter('kernel.project_dir') . '/public' . $profilePicture;
+            if (file_exists($filePath)) {
+                @unlink($filePath);
+            }
+        }
+
+        $entityManager->remove($user);
+        $entityManager->flush();
+
+        return $this->json([
+            'message' => 'Account and all related data successfully deleted.'
+        ], 200);
+    }
 }

@@ -48,19 +48,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var Collection<int, Message>
      */
-    #[ORM\OneToMany(targetEntity: Message::class, mappedBy: 'sender')]
+    #[ORM\OneToMany(targetEntity: Message::class, mappedBy: 'sender', cascade: ['remove'], orphanRemoval: true)]
     private Collection $messages;
 
+    // Gesendete Freundschaften mit Cascade
     /**
      * @var Collection<int, Friendship>
      */
-    #[ORM\OneToMany(targetEntity: Friendship::class, mappedBy: 'requester', cascade: ['remove'])]
+    #[ORM\OneToMany(targetEntity: Friendship::class, mappedBy: 'requester', cascade: ['remove'], orphanRemoval: true)]
     private Collection $sentFriendships;
 
+    // Empfangene Freundschaften mit Cascade
     /**
      * @var Collection<int, Friendship>
      */
-    #[ORM\OneToMany(targetEntity: Friendship::class, mappedBy: 'addressee', cascade: ['remove'])]
+    #[ORM\OneToMany(targetEntity: Friendship::class, mappedBy: 'addressee', cascade: ['remove'], orphanRemoval: true)]
     private Collection $receivedFriendships;
 
 
