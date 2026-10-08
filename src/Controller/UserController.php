@@ -73,9 +73,28 @@ class UserController extends AbstractController
         }
 
         $file = $request->files->get('profilePicture');
+        $remove = $request->request->get('remove') === 'true';
 
-        if (!$file) {
-            return $this->json(['error' => 'No file uploaded.'], 400);
+        if (!$file && !$remove) {
+            return $this->json(['error' => 'No file uploaded or actions specified.'], 400);
+        }
+
+        $oldPicture = $user->getProfilePicture();
+        if ($oldPicture) {
+            $oldFilePath = $this->getParameter('kernel.project_dir') . '/public' . $oldPicture;
+            if (file_exists($oldFilePath)) {
+                @unlink($oldFilePath);
+            }
+        }
+
+        if ($remove) {
+            $user->setProfilePicture(null);
+            $entityManager->flush();
+
+            return $this->json([
+                'message' => 'Profile picture removed successfully!',
+                'profilePicture' => ''
+            ], 200);
         }
 
         $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -93,14 +112,6 @@ class UserController extends AbstractController
         $fileName = 'profile_picture_user_' . $user->getId() . '.' . $extension;
 
         try {
-            $oldPicture = $user->getProfilePicture();
-            if ($oldPicture) {
-                $oldFilePath = $this->getParameter('kernel.project_dir') . '/public' . $oldPicture;
-                if (file_exists($oldFilePath)) {
-                    @unlink($oldFilePath);
-                }
-            }
-
             $file->move($uploadsDirectory, $fileName);
         } catch (\Exception $e) {
             return $this->json(['error' => 'Failed to upload file.'], 500);
