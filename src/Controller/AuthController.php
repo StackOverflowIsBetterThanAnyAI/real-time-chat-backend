@@ -78,5 +78,16 @@ class AuthController extends AbstractController
             'userName' => $user->getUserIdentifier()
         ], 200);
     }
+
+    #[Route('/logout', name: 'logout', methods: ['POST'])]
+    public function logout(Request $request): JsonResponse
+    {
+        $session = $request->getSession();
+        if ($session->isStarted()) {
+            $session->invalidate();
+        }
+
+        return $this->json(['message' => 'Logged out successfully!'], 200);
+    }
 }
 

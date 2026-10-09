@@ -22,8 +22,6 @@ security:
             json_login:
                 check_path: api_login
                 username_path: userName
-            logout:
-                path: api_logout
 
             # Activate different ways to authenticate:
             # https://symfony.com/doc/current/security.html#the-firewall
