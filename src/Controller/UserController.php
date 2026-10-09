@@ -8,6 +8,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 #[Route('/api', name: 'api_')]
 class UserController extends AbstractController
@@ -128,7 +129,11 @@ class UserController extends AbstractController
     }
 
     #[Route('/account', name: 'delete_account', methods: ['DELETE'])]
-    public function deleteAccount(EntityManagerInterface $entityManager): JsonResponse
+    public function deleteAccount(
+        EntityManagerInterface $entityManager,
+        Request $request,
+        TokenStorageInterface $tokenStorage
+    ): JsonResponse
     {
         /** @var User $user */
         $user = $this->getUser();
@@ -147,6 +152,13 @@ class UserController extends AbstractController
 
         $entityManager->remove($user);
         $entityManager->flush();
+
+        $tokenStorage->setToken(null);
+
+        $session = $request->getSession();
+        if ($session->isStarted()) {
+            $session->invalidate();
+        }
 
         return $this->json([
             'message' => 'Account and all related data successfully deleted.'
