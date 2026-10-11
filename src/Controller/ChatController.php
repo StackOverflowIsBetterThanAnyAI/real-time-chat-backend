@@ -4,9 +4,11 @@ namespace App\Controller;
 
 use App\Entity\Conversation;
 use App\Entity\User;
+use App\Entity\Message;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api', name: 'api_')]
@@ -69,5 +71,45 @@ class ChatController extends AbstractController
             'conversationId' => $conversation->getId(),
             'messages' => $messages,
         ], 200);
+    }
+
+    #[Route('/conversation/{id}/message', name: 'send_message', methods: ['POST'])]
+    public function sendMessage(
+        Conversation $conversation,
+        Request $request,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        /** @var User $user */
+        $user =$this->getUser();
+
+        if (!$user) {
+            return $this->json(['error' => 'Unauthorized'], 401);
+        }
+
+        if (!$conversation->getParticipants()->contains($user)) {
+            return $this->json(['error' => 'Access denied'], 403);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $content = trim($data['content'] ?? '');
+
+        if ($content === '') {
+            return $this->json(['error' => 'Message cannot be empty'], 400);
+        }
+
+        $message = new Message();$message->setContent($content);$message->setCreatedAt(new \DateTimeImmutable());
+        $message->setSender($user);
+        $message->setConversation($conversation);
+
+        $entityManager->persist($message);$entityManager->flush();
+
+        return $this->json([
+            'id' => $message->getId(),
+            'content' => $message->getContent(),
+            'createdAt' => $message->getCreatedAt()->format(\DateTime::ATOM),
+            'sender' => [
+                'userName' => $user->getUserIdentifier(),
+            ],
+        ], 201);
     }
 }
