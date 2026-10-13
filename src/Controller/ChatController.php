@@ -112,4 +112,51 @@ class ChatController extends AbstractController
             ],
         ], 201);
     }
+
+    #[Route('/conversation/{id}/poll', name: 'poll_conversation', methods: ['GET'])]
+    public function pollMessages(
+        Conversation $conversation,
+        Request $request,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if (!$user) {
+            return $this->json(['error' => 'Unauthorized'], 401);
+        }
+
+        if (!$conversation->getParticipants()->contains($user)) {
+            return $this->json(['error' => 'Access denied'], 403);
+        }
+
+        $lastKnownId = (int) $request->query->get('after', 0);
+
+        $newMessagesQuery = $entityManager->createQueryBuilder()
+            ->select('m', 's')
+            ->from(Message::class, 'm')
+            ->join('m.sender', 's')
+            ->where('m.conversation = :conversation')
+            ->andWhere('m.id > :lastKnownId')
+            ->setParameter('conversation', $conversation)
+            ->setParameter('lastKnownId', $lastKnownId)
+            ->orderBy('m.id', 'ASC')
+            ->getQuery();
+
+        $newMessages = $newMessagesQuery->getResult();
+
+        $payload = [];
+        foreach ($newMessages as $message) {
+            $payload[] = [
+                'id' => $message->getId(),
+                'content' => $message->getContent(),
+                'createdAt' => $message->getCreatedAt()->format(\DateTime::ATOM),
+                'sender' => [
+                    'userName' => $message->getSender()->getUserIdentifier(),
+                ],
+            ];
+        }
+
+        return $this->json($payload, 200);
+    }
 }
