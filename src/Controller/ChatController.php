@@ -21,7 +21,7 @@ class ChatController extends AbstractController
         $user = $this->getUser();
 
         if (!$user) {
-         return $this->json(['error' => 'Unauthorized'], 401);
+            return $this->json(['error' => 'Unauthorized'], 401);
         }
 
         $friend = $entityManager->getRepository(User::class)->findOneBy(['userName' => $userName]);
@@ -57,13 +57,12 @@ class ChatController extends AbstractController
 
         $messages = [];
         foreach ($conversation->getMessages() as $message) {
+            $direction = $message->getSender()->getId() === $user->getId() ? 'sent' : 'received';
             $messages[] = [
                 'id' => $message->getId(),
                 'content' => $message->getContent(),
                 'createdAt' => $message->getCreatedAt()->format(\DateTime::ATOM),
-                'sender' => [
-                    'userName' => $message->getSender()->getUserIdentifier(),
-                ],
+                'direction' => $direction,
             ];
         }
 
@@ -80,7 +79,7 @@ class ChatController extends AbstractController
         EntityManagerInterface $entityManager
     ): JsonResponse {
         /** @var User $user */
-        $user =$this->getUser();
+        $user = $this->getUser();
 
         if (!$user) {
             return $this->json(['error' => 'Unauthorized'], 401);
@@ -97,19 +96,20 @@ class ChatController extends AbstractController
             return $this->json(['error' => 'Message cannot be empty'], 400);
         }
 
-        $message = new Message();$message->setContent($content);$message->setCreatedAt(new \DateTimeImmutable());
+        $message = new Message();
+        $message->setContent($content);
+        $message->setCreatedAt(new \DateTimeImmutable());
         $message->setSender($user);
         $message->setConversation($conversation);
 
-        $entityManager->persist($message);$entityManager->flush();
+        $entityManager->persist($message);
+        $entityManager->flush();
 
         return $this->json([
             'id' => $message->getId(),
             'content' => $message->getContent(),
             'createdAt' => $message->getCreatedAt()->format(\DateTime::ATOM),
-            'sender' => [
-                'userName' => $user->getUserIdentifier(),
-            ],
+            'direction' => 'sent',
         ], 201);
     }
 
@@ -147,13 +147,12 @@ class ChatController extends AbstractController
 
         $payload = [];
         foreach ($newMessages as $message) {
+            $direction = $message->getSender()->getId() === $user->getId() ? 'sent' : 'received';
             $payload[] = [
                 'id' => $message->getId(),
                 'content' => $message->getContent(),
                 'createdAt' => $message->getCreatedAt()->format(\DateTime::ATOM),
-                'sender' => [
-                    'userName' => $message->getSender()->getUserIdentifier(),
-                ],
+                'direction' => $direction,
             ];
         }
 
