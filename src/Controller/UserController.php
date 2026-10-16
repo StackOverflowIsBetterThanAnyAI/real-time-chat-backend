@@ -164,4 +164,20 @@ class UserController extends AbstractController
             'message' => 'Account and all related data successfully deleted.'
         ], 200);
     }
+
+    #[Route('/heartbeat', name: 'heartbeat', methods: ['POST'])]
+    public function heartbeat(EntityManagerInterface $entityManager): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if (!$user) {
+            return $this->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $user->setLastActiveAt(new \DateTimeImmutable());
+        $entityManager->flush();
+
+        return $this->json(['status' => 'ok'], 200);
+    }
 }

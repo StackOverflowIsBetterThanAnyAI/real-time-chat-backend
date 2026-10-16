@@ -130,6 +130,19 @@ class ChatController extends AbstractController
             return $this->json(['error' => 'Access denied'], 403);
         }
 
+        $friend = null;
+        foreach ($conversation->getParticipants() as $participant) {
+            if ($participant->getId() !== $user->getId()) {
+                $friend = $participant;
+                break;
+            }
+        }
+
+        $isPartnerOnline = false;
+        if ($friend?->getLastActiveAt()) {
+            $isPartnerOnline = $friend->getLastActiveAt()->getTimestamp() > (time() - 45);
+        }
+
         $lastKnownId = (int) $request->query->get('after', 0);
 
         $newMessagesQuery = $entityManager->createQueryBuilder()
@@ -156,6 +169,9 @@ class ChatController extends AbstractController
             ];
         }
 
-        return $this->json($payload, 200);
+        return $this->json([
+            'messages' => $payload,
+            'isPartnerOnline' => $isPartnerOnline,
+        ], 200);
     }
 }

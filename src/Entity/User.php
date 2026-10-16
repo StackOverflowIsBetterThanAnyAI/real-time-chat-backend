@@ -33,6 +33,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $lastActiveAt = null;
+
     /**
      * @var Collection<int, Friendship>
      */
@@ -134,6 +137,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->createdAt = $createdAt;
 
+        return $this;
+    }
+
+    public function getLastActiveAt(): ?\DateTimeImmutable
+    {
+        return $this->lastActiveAt;
+    }
+
+    public function setLastActiveAt(?\DateTimeImmutable $lastActiveAt): static
+    {
+        $this->lastActiveAt = $lastActiveAt;
+        
         return $this;
     }
 
