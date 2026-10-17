@@ -55,6 +55,12 @@ class ChatController extends AbstractController
             $entityManager->flush();
         }
 
+        $isPartnerOnline = false;
+        if ($friend?->getLastActiveAt()) {
+            $isPartnerOnline = $friend->getLastActiveAt()->getTimestamp() > (time() - 45);
+        }
+
+
         $messages = [];
         foreach ($conversation->getMessages() as $message) {
             $direction = $message->getSender()->getId() === $user->getId() ? 'sent' : 'received';
@@ -68,6 +74,7 @@ class ChatController extends AbstractController
 
         return $this->json([
             'conversationId' => $conversation->getId(),
+            'isPartnerOnline' => $isPartnerOnline,
             'messages' => $messages,
         ], 200);
     }
