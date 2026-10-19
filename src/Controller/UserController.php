@@ -252,8 +252,8 @@ class UserController extends AbstractController
         $timelineQuery = [];
         foreach ($timelineData as $date => $count) {
             $timelineQuery[] = [
-                'dateMsg' => $date,
-                'count' => $count
+                'dateOfMessage' => $date,
+                'messageCount' => $count
             ];
         }
 
