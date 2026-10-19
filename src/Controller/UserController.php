@@ -212,14 +212,14 @@ class UserController extends AbstractController
             ->getSingleScalarResult();
 
         $favoriteFriendQuery = $entityManager->createQueryBuilder()
-            ->select('f.userName, COUNT(m.id) as msgCount')
+            ->select('f.userName, f.profilePicture, f.status, COUNT(m.id) as msgCount')
             ->from(Message::class, 'm')
             ->join('m.conversation', 'c')
             ->join('c.participants', 'f')
             ->where(':user MEMBER OF c.participants')
             ->andWhere('f != :user')
             ->setParameter('user', $user)
-            ->groupBy('f.id')
+            ->groupBy('f.id', 'f.userName', 'f.profilePicture', 'f.status')
             ->orderBy('msgCount', 'DESC')
             ->setMaxResults(1)
             ->getQuery()
@@ -288,7 +288,9 @@ class UserController extends AbstractController
             'streak' => $streak,
             'favoriteFriend' => $favoriteFriendQuery ? [
                 'userName' => $favoriteFriendQuery['userName'],
-                'messageCount' => (int) $favoriteFriendQuery['msgCount']
+                'messageCount' => (int) $favoriteFriendQuery['msgCount'],
+                'status' => $favoriteFriendQuery['status'],
+                'profilePicture' => $favoriteFriendQuery['profilePicture'] ?? '',
             ] : null,
             'timeline' => $timelineQuery,
         ], 200);
