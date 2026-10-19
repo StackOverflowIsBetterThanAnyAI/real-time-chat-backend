@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Entity\Message;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -179,5 +180,117 @@ class UserController extends AbstractController
         $entityManager->flush();
 
         return $this->json(['status' => 'ok'], 200);
+    }
+
+    #[Route('/statistics', name: 'statistics', methods: ['GET'])]
+    public function getStatistics(EntityManagerInterface $entityManager): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if (!$user) {
+            return $this->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $sentCount = $entityManager->createQueryBuilder()
+            ->select('COUNT(m.id)')
+            ->from(Message::class, 'm')
+            ->where('m.sender = :user')
+            ->setParameter('user', $user)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $receivedCount = $entityManager->createQueryBuilder()
+            ->select('COUNT(m.id)')
+            ->from(Message::class, 'm')
+            ->join('m.conversation', 'c')
+            ->join('c.participants', 'p')
+            ->where('p = :user')
+            ->andWhere('m.sender != :user')
+            ->setParameter('user', $user)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $favoriteFriendQuery = $entityManager->createQueryBuilder()
+            ->select('f.userName, COUNT(m.id) as msgCount')
+            ->from(Message::class, 'm')
+            ->join('m.conversation', 'c')
+            ->join('c.participants', 'f')
+            ->where(':user MEMBER OF c.participants')
+            ->andWhere('f != :user')
+            ->setParameter('user', $user)
+            ->groupBy('f.id')
+            ->orderBy('msgCount', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        $sentMessages = $entityManager->createQueryBuilder()
+            ->select('m.createdAt')
+            ->from(Message::class, 'm')
+            ->where('m.sender = :user')
+            ->setParameter('user', $user)
+            ->orderBy('m.createdAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $timelineData = [];
+        $activeDays = [];
+
+        foreach ($sentMessages as $msg) {
+            /** @var \DateTimeImmutable $createdAt */
+            $createdAt = $msg['createdAt'];
+            $dateStr = $createdAt->format('Y-m-d');
+
+            if (!isset($timelineData[$dateStr])) {
+                $timelineData[$dateStr] = 0;
+            }
+            $timelineData[$dateStr]++;
+            $activeDays[$dateStr] = true;
+        }
+
+        $timelineQuery = [];
+        foreach ($timelineData as $date => $count) {
+            $timelineQuery[] = [
+                'dateMsg' => $date,
+                'count' => $count
+            ];
+        }
+
+        $today = new \DateTimeImmutable('today');
+        $yesterday = $today->modify('-1 day');
+        
+        $todayStr = $today->format('Y-m-d');
+        $yesterdayStr = $yesterday->format('Y-m-d');
+
+        $streak = 0;
+        $currentCheckDate = null;
+
+        if (isset($activeDays[$todayStr])) {
+            $currentCheckDate = $today;
+        } elseif (isset($activeDays[$yesterdayStr])) {
+            $currentCheckDate = $yesterday;
+        }
+
+        while ($currentCheckDate !== null) {
+            $dateKey = $currentCheckDate->format('Y-m-d');
+            if (isset($activeDays[$dateKey])) {
+                $streak++;
+                $currentCheckDate = $currentCheckDate->modify('-1 day');
+            } else {
+                break;
+            }
+        }
+
+        return $this->json([
+            'totalSent' => (int) $sentCount,
+            'totalReceived' => (int) $receivedCount,
+            'streak' => $streak,
+            'favoriteFriend' => $favoriteFriendQuery ? [
+                'userName' => $favoriteFriendQuery['userName'],
+                'messageCount' => (int) $favoriteFriendQuery['msgCount']
+            ] : null,
+            'timeline' => $timelineQuery,
+        ], 200);
     }
 }
