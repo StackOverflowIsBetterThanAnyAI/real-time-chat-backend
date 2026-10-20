@@ -13,7 +13,7 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/friends', name: 'api_friends_')]
 class FriendshipController extends AbstractController
 {
-    #[Route('/', name: '', methods: ['GET'])]
+    #[Route('', name: '', methods: ['GET'])]
     public function getFriends(): JsonResponse
     {
         /** @var User $user */
