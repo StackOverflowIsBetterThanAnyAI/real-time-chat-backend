@@ -5,11 +5,21 @@ RUN apk add --no-cache \
     curl \
     libpng-dev \
     libxml2-dev \
+    icu-dev \
+    oniguruma-dev \
     zip \
     unzip \
     postgresql-dev
 
-RUN docker-php-ext-install pdo pdo_pgsql opcache
+RUN docker-php-ext-install \
+    pdo \
+    pdo_pgsql \
+    opcache \
+    intl \
+    mbstring \
+    xml \
+    ctype \
+    dom
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
