@@ -234,7 +234,19 @@ class UserController extends AbstractController
             ->getQuery()
             ->getResult();
 
-        $timelineData = [];
+        $receivedMessages = $entityManager->createQueryBuilder()
+            ->select('m.createdAt')
+            ->from(Message::class, 'm')
+            ->join('m.conversation', 'c')
+            ->join('c.participants', 'p')
+            ->where('p = :user')
+            ->andWhere('m.sender != :user')
+            ->setParameter('user', $user)
+            ->orderBy('m.createdAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $timelineMap = [];
         $activeDays = [];
 
         foreach ($sentMessages as $msg) {
@@ -242,19 +254,42 @@ class UserController extends AbstractController
             $createdAt = $msg['createdAt'];
             $dateStr = $createdAt->format('Y-m-d');
 
-            if (!isset($timelineData[$dateStr])) {
-                $timelineData[$dateStr] = 0;
+            if (!isset($timelineMap[$dateStr])) {
+                $timelineMap[$dateStr] = ['sentCount' => 0, 'receivedCount' => 0];
             }
-            $timelineData[$dateStr]++;
+            $timelineMap[$dateStr]['sentCount']++;
             $activeDays[$dateStr] = true;
         }
 
+        foreach ($receivedMessages as $msg) {
+            /** @var \DateTimeImmutable $createdAt */
+            $createdAt = $msg['createdAt'];
+            $dateStr = $createdAt->format('Y-m-d');
+
+            if (!isset($timelineMap[$dateStr])) {
+                $timelineMap[$dateStr] = ['sentCount' => 0, 'receivedCount' => 0];
+            }
+            $timelineMap[$dateStr]['receivedCount']++;
+        }
+
         $timelineQuery = [];
-        foreach ($timelineData as $date => $count) {
-            $timelineQuery[] = [
-                'dateOfMessage' => $date,
-                'messageCount' => $count
-            ];
+
+        if (!empty($timelineMap)) {
+            $today = new \DateTimeImmutable('today');
+            $startDate = $today->modify('-13 days'); 
+
+            $currentDate = $startDate;
+            while ($currentDate <= $today) {
+                $dateKey = $currentDate->format('Y-m-d');
+
+                $timelineQuery[] = [
+                    'dateOfMessage' => $dateKey,
+                    'sentCount' => $timelineMap[$dateKey]['sentCount'] ?? 0,
+                    'receivedCount' => $timelineMap[$dateKey]['receivedCount'] ?? 0,
+                ];
+
+                $currentDate = $currentDate->modify('+1 day');
+            }
         }
 
         $today = new \DateTimeImmutable('today');
