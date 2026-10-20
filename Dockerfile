@@ -23,8 +23,6 @@ COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-RUN chown -R www-data:www-data /var/www/html/var /var/www/html/public
-
 EXPOSE 80
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
