@@ -18,7 +18,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 63, unique: true)]
+    #[ORM\Column(name: 'username', length: 63, unique: true)]
     private string $userName;
 
     #[ORM\Column(length: 255)]
