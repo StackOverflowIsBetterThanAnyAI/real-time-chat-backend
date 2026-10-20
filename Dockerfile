@@ -20,6 +20,9 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts
 
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 EXPOSE 80
 
-CMD sh -c "php bin/console cache:clear --env=prod && nginx && php-fpm"
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
