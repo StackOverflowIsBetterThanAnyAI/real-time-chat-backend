@@ -1,26 +1,15 @@
-FROM php:8.2-fpm-alpine
+FROM php:8.4-fpm-alpine
 
 RUN apk add --no-cache \
     nginx \
     curl \
-    git \
     libpng-dev \
     libxml2-dev \
-    icu-dev \
-    oniguruma-dev \
     zip \
     unzip \
     postgresql-dev
 
-RUN docker-php-ext-install \
-    pdo \
-    pdo_pgsql \
-    opcache \
-    intl \
-    mbstring \
-    xml \
-    ctype \
-    iconv
+RUN docker-php-ext-install pdo pdo_pgsql opcache
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
