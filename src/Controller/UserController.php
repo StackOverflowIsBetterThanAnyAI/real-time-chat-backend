@@ -68,30 +68,18 @@ class UserController extends AbstractController
     ): JsonResponse
     {
         /** @var User $user */
-        $user = $this->getUser();
+        $user =$this->getUser();
 
         if (!$user) {
             return $this->json(['error' => 'Unauthorized'], 401);
         }
 
-        $file = $request->files->get('profilePicture');
-        $remove = $request->request->get('remove') === 'true';
-
-        if (!$file && !$remove) {
-            return $this->json(['error' => 'No file uploaded or actions specified.'], 400);
-        }
-
-        $oldPicture = $user->getProfilePicture();
-        if ($oldPicture) {
-            $oldFilePath = $this->getParameter('kernel.project_dir') . '/public' . $oldPicture;
-            if (file_exists($oldFilePath)) {
-                @unlink($oldFilePath);
-            }
-        }
+        $data = json_decode($request->getContent(), true);
+        $base64Image =$data['profilePicture'] ?? null;
+        $remove =$data['remove'] ?? false;
 
         if ($remove) {
-            $user->setProfilePicture(null);
-            $entityManager->flush();
+            $user->setProfilePicture(null);$entityManager->flush();
 
             return $this->json([
                 'message' => 'Profile picture removed successfully!',
@@ -99,33 +87,30 @@ class UserController extends AbstractController
             ], 200);
         }
 
-        $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
-        if (!\in_array($file->getMimeType(), $allowedMimeTypes)) {
+        if (!$base64Image) {
+            return $this->json(['error' => 'No profile picture data provided.'], 400);
+        }
+
+        if (mb_strlen($base64Image) > 3000000) {
+            return $this->json(['error' => 'File is too large. Maximum size is 2MB.'], 400);
+        }
+
+        if (!preg_match('/^data:image\/(jpeg|jpg|png|webp);base64,/', $base64Image,$matches)) {
             return $this->json(['error' => 'Invalid file type. Only JPG, PNG and WEBP are allowed.'], 400);
         }
 
-        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/public/uploads/avatars';
-
-        if (!is_dir($uploadsDirectory)) {
-            mkdir($uploadsDirectory, 0777, true);
+        $base64Data = substr($base64Image, strpos($base64Image, ',') + 1);
+        $decodedData = base64_decode($base64Data, true);
+        
+        if ($decodedData === false) {
+            return $this->json(['error' => 'Invalid image encoding.'], 400);
         }
 
-        $extension = $file->guessExtension() ?? 'jpg';
-        $fileName = 'profile_picture_user_' . $user->getId() . '.' . $extension;
-
-        try {
-            $file->move($uploadsDirectory, $fileName);
-        } catch (\Exception $e) {
-            return $this->json(['error' => 'Failed to upload file.'], 500);
-        }
-
-        $relativePath = "/uploads/avatars/{$fileName}";
-        $user->setProfilePicture($relativePath);
-        $entityManager->flush();
+        $user->setProfilePicture($base64Image);$entityManager->flush();
 
         return $this->json([
             'message' => 'Profile picture updated successfully!',
-            'profilePicture' => $relativePath
+            'profilePicture' => $base64Image
         ], 200);
     }
 
