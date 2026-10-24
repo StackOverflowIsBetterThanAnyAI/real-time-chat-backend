@@ -19,7 +19,7 @@ class Friendship
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
-    #[ORM\ManyToOne(inversedBy: 'sentFriendships')] 
+    #[ORM\ManyToOne(inversedBy: 'sentFriendships')]
     #[ORM\JoinColumn(onDelete: 'CASCADE')]
     private User $requester;
 

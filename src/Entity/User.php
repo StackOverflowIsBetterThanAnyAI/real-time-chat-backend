@@ -148,7 +148,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setLastActiveAt(?\DateTimeImmutable $lastActiveAt): static
     {
         $this->lastActiveAt = $lastActiveAt;
-        
+
         return $this;
     }
 

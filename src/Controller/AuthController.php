@@ -16,8 +16,8 @@ class AuthController extends AbstractController
 {
     #[Route('/register', name: 'register', methods: ['POST'])]
     public function register(
-        Request $request, 
-        UserPasswordHasherInterface $passwordHasher, 
+        Request $request,
+        UserPasswordHasherInterface $passwordHasher,
         EntityManagerInterface $entityManager
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
@@ -92,4 +92,3 @@ class AuthController extends AbstractController
         return $this->json(['message' => 'Logged out successfully!'], 200);
     }
 }
-

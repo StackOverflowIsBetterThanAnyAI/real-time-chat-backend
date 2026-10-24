@@ -48,7 +48,6 @@ class FriendshipController extends AbstractController
             ];
 
             return $this->json($friendships, 200);
-
         } catch (\Exception $e) {
             return $this->json(['error' => 'Failed to fetch friends list.'], 400);
         }
@@ -92,8 +91,7 @@ class FriendshipController extends AbstractController
             if ($existing) {
                 if ($existing->getStatus() === 'accepted') {
                     return $this->json(['error' => 'You are already friends with this user.'], 400);
-                }
-                else if ($existing->getStatus() === 'pending') {
+                } else if ($existing->getStatus() === 'pending') {
                     return $this->json(['error' => 'A friend request is already pending with this user.'], 400);
                 }
             }
@@ -117,7 +115,6 @@ class FriendshipController extends AbstractController
                     'status' => $targetUser->getStatus() ?? '',
                 ],
             ], 201);
-            
         } catch (\Exception $e) {
             return $this->json(['error' => 'An error occurred while sending the friend request.'], 400);
         }
@@ -162,7 +159,6 @@ class FriendshipController extends AbstractController
                     'status' => $otherUser->getStatus() ?? '',
                 ],
             ], 200);
-
         } catch (\Exception $e) {
             return $this->json(['error' => 'An error occurred while accepting the request.'], 400);
         }
@@ -191,7 +187,6 @@ class FriendshipController extends AbstractController
             $entityManager->flush();
 
             return $this->json(['message' => 'Friendship removed/rejected successfully.'], 200);
-
         } catch (\Exception $e) {
             return $this->json(['error' => 'An error occurred while removing the friendship.'], 400);
         }
