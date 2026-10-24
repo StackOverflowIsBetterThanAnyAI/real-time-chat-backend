@@ -63,23 +63,23 @@ class UserController extends AbstractController
 
     #[Route('/profile-picture', name: 'profile_picture', methods: ['POST'])]
     public function uploadProfilePicture(
-        Request $request, 
+        Request $request,
         EntityManagerInterface $entityManager
-    ): JsonResponse
-    {
+    ): JsonResponse {
         /** @var User $user */
-        $user =$this->getUser();
+        $user = $this->getUser();
 
         if (!$user) {
             return $this->json(['error' => 'Unauthorized'], 401);
         }
 
         $data = json_decode($request->getContent(), true);
-        $base64Image =$data['profilePicture'] ?? null;
-        $remove =$data['remove'] ?? false;
+        $base64Image = $data['profilePicture'] ?? null;
+        $remove = $data['remove'] ?? false;
 
         if ($remove) {
-            $user->setProfilePicture(null);$entityManager->flush();
+            $user->setProfilePicture(null);
+            $entityManager->flush();
 
             return $this->json([
                 'message' => 'Profile picture removed successfully!',
@@ -95,18 +95,19 @@ class UserController extends AbstractController
             return $this->json(['error' => 'File is too large. Maximum size is 2MB.'], 400);
         }
 
-        if (!preg_match('/^data:image\/(jpeg|jpg|png|webp);base64,/', $base64Image,$matches)) {
+        if (!preg_match('/^data:image\/(jpeg|jpg|png|webp);base64,/', $base64Image, $matches)) {
             return $this->json(['error' => 'Invalid file type. Only JPG, PNG and WEBP are allowed.'], 400);
         }
 
         $base64Data = substr($base64Image, strpos($base64Image, ',') + 1);
         $decodedData = base64_decode($base64Data, true);
-        
+
         if ($decodedData === false) {
             return $this->json(['error' => 'Invalid image encoding.'], 400);
         }
 
-        $user->setProfilePicture($base64Image);$entityManager->flush();
+        $user->setProfilePicture($base64Image);
+        $entityManager->flush();
 
         return $this->json([
             'message' => 'Profile picture updated successfully!',
@@ -119,8 +120,7 @@ class UserController extends AbstractController
         EntityManagerInterface $entityManager,
         Request $request,
         TokenStorageInterface $tokenStorage
-    ): JsonResponse
-    {
+    ): JsonResponse {
         /** @var User $user */
         $user = $this->getUser();
 
@@ -210,91 +210,72 @@ class UserController extends AbstractController
             ->getQuery()
             ->getOneOrNullResult();
 
-        $sentMessages = $entityManager->createQueryBuilder()
-            ->select('m.createdAt')
-            ->from(Message::class, 'm')
-            ->where('m.sender = :user')
-            ->setParameter('user', $user)
-            ->orderBy('m.createdAt', 'ASC')
-            ->getQuery()
-            ->getResult();
+        $today = new \DateTimeImmutable('today');
+        $startDate = $today->modify('-13 days');
 
-        $receivedMessages = $entityManager->createQueryBuilder()
-            ->select('m.createdAt')
-            ->from(Message::class, 'm')
-            ->join('m.conversation', 'c')
-            ->join('c.participants', 'p')
-            ->where('p = :user')
-            ->andWhere('m.sender != :user')
-            ->setParameter('user', $user)
-            ->orderBy('m.createdAt', 'ASC')
-            ->getQuery()
-            ->getResult();
+        $fetchTimelineData = function (bool $isSent) use ($entityManager, $user, $startDate) {
+            $qb = $entityManager->createQueryBuilder()
+                ->select("SUBSTRING(m.createdAt, 1, 10) as msgDate, COUNT(m.id) as cnt")
+                ->from(Message::class, 'm')
+                ->andWhere('m.createdAt >= :startDate')
+                ->setParameter('startDate', $startDate);
 
-        $timelineMap = [];
-        $activeDays = [];
-
-        foreach ($sentMessages as $msg) {
-            /** @var \DateTimeImmutable $createdAt */
-            $createdAt = $msg['createdAt'];
-            $dateStr = $createdAt->format('Y-m-d');
-
-            if (!isset($timelineMap[$dateStr])) {
-                $timelineMap[$dateStr] = ['sentCount' => 0, 'receivedCount' => 0];
+            if ($isSent) {
+                $qb->where('m.sender = :user')
+                    ->setParameter('user', $user);
+            } else {
+                $qb->join('m.conversation', 'c')
+                    ->join('c.participants', 'p')
+                    ->where('p = :user')
+                    ->andWhere('m.sender != :user')
+                    ->setParameter('user', $user);
             }
-            $timelineMap[$dateStr]['sentCount']++;
-            $activeDays[$dateStr] = true;
-        }
 
-        foreach ($receivedMessages as $msg) {
-            /** @var \DateTimeImmutable $createdAt */
-            $createdAt = $msg['createdAt'];
-            $dateStr = $createdAt->format('Y-m-d');
+            $results = $qb->groupBy('msgDate')->getQuery()->getResult();
 
-            if (!isset($timelineMap[$dateStr])) {
-                $timelineMap[$dateStr] = ['sentCount' => 0, 'receivedCount' => 0];
+            $map = [];
+            foreach ($results as $row) {
+                $map[$row['msgDate']] = (int) $row['cnt'];
             }
-            $timelineMap[$dateStr]['receivedCount']++;
-        }
+            return $map;
+        };
+
+        $sentTimelineMap = $fetchTimelineData(true);
+        $receivedTimelineMap = $fetchTimelineData(false);
 
         $timelineQuery = [];
+        $currentDate = $startDate;
+        while ($currentDate <= $today) {
+            $dateKey = $currentDate->format('Y-m-d');
 
-        if (!empty($timelineMap)) {
-            $today = new \DateTimeImmutable('today');
-            $startDate = $today->modify('-13 days'); 
+            $timelineQuery[] = [
+                'dateOfMessage' => $dateKey,
+                'sentCount' => $sentTimelineMap[$dateKey] ?? 0,
+                'receivedCount' => $receivedTimelineMap[$dateKey] ?? 0,
+            ];
 
-            $currentDate = $startDate;
-            while ($currentDate <= $today) {
-                $dateKey = $currentDate->format('Y-m-d');
-
-                $timelineQuery[] = [
-                    'dateOfMessage' => $dateKey,
-                    'sentCount' => $timelineMap[$dateKey]['sentCount'] ?? 0,
-                    'receivedCount' => $timelineMap[$dateKey]['receivedCount'] ?? 0,
-                ];
-
-                $currentDate = $currentDate->modify('+1 day');
-            }
+            $currentDate = $currentDate->modify('+1 day');
         }
 
-        $today = new \DateTimeImmutable('today');
+        $activeDays = [...array_keys($sentTimelineMap), ...array_keys($receivedTimelineMap)];
+        $activeDaysMap = array_fill_keys($activeDays, true);
+
         $yesterday = $today->modify('-1 day');
-        
         $todayStr = $today->format('Y-m-d');
         $yesterdayStr = $yesterday->format('Y-m-d');
 
         $streak = 0;
         $currentCheckDate = null;
 
-        if (isset($activeDays[$todayStr])) {
+        if (isset($activeDaysMap[$todayStr])) {
             $currentCheckDate = $today;
-        } elseif (isset($activeDays[$yesterdayStr])) {
+        } elseif (isset($activeDaysMap[$yesterdayStr])) {
             $currentCheckDate = $yesterday;
         }
 
         while ($currentCheckDate !== null) {
             $dateKey = $currentCheckDate->format('Y-m-d');
-            if (isset($activeDays[$dateKey])) {
+            if (isset($activeDaysMap[$dateKey])) {
                 $streak++;
                 $currentCheckDate = $currentCheckDate->modify('-1 day');
             } else {
