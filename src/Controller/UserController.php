@@ -128,14 +128,6 @@ class UserController extends AbstractController
             return $this->json(['error' => 'Unauthorized'], 401);
         }
 
-        $profilePicture = $user->getProfilePicture();
-        if ($profilePicture) {
-            $filePath = $this->getParameter('kernel.project_dir') . '/public' . $profilePicture;
-            if (file_exists($filePath)) {
-                @unlink($filePath);
-            }
-        }
-
         $entityManager->remove($user);
         $entityManager->flush();
 
