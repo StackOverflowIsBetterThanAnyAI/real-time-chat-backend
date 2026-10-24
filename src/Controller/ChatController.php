@@ -61,15 +61,16 @@ class ChatController extends AbstractController
         }
 
 
-        $messages = $entityManager->getRepository(Message::class)
-            ->createQueryBuilder('m')
-            ->addSelect('s')
-            ->join('m.sender', 's')
-            ->where('m.conversation = :conversation')
-            ->setParameter('conversation', $conversation)
-            ->orderBy('m.createdAt', 'ASC')
-            ->getQuery()
-            ->getResult();
+        $messages = [];
+        foreach ($conversation->getMessages() as $message) {
+            $direction = $message->getSender()->getId() === $user->getId() ? 'sent' : 'received';
+            $messages[] = [
+                'id' => $message->getId(),
+                'content' => $message->getContent(),
+                'createdAt' => $message->getCreatedAt()->format(\DateTime::ATOM),
+                'direction' => $direction,
+            ];
+        }
 
         return $this->json([
             'conversationId' => $conversation->getId(),
