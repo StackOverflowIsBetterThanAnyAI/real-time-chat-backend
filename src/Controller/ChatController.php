@@ -60,11 +60,20 @@ class ChatController extends AbstractController
             $isPartnerOnline = $friend->getLastActiveAt()->getTimestamp() > (time() - 45);
         }
 
+        $messages = $entityManager->getRepository(Message::class)
+            ->createQueryBuilder('m')
+            ->addSelect('s')
+            ->join('m.sender', 's')
+            ->where('m.conversation = :conversation')
+            ->setParameter('conversation', $conversation)
+            ->orderBy('m.createdAt', 'ASC')
+            ->getQuery()
+            ->getResult();
 
-        $messages = [];
-        foreach ($conversation->getMessages() as $message) {
+        $payload = [];
+        foreach ($messages as $message) {
             $direction = $message->getSender()->getId() === $user->getId() ? 'sent' : 'received';
-            $messages[] = [
+            $payload[] = [
                 'id' => $message->getId(),
                 'content' => $message->getContent(),
                 'createdAt' => $message->getCreatedAt()->format(\DateTime::ATOM),
@@ -75,7 +84,7 @@ class ChatController extends AbstractController
         return $this->json([
             'conversationId' => $conversation->getId(),
             'isPartnerOnline' => $isPartnerOnline,
-            'messages' => $messages,
+            'messages' => $payload,
         ], 200);
     }
 
